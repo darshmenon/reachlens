@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 - `reachlens volume`: self-contained interactive 3D HTML of the reachable workspace (rotate, zoom, z-range sliders, colour by manipulability, joint-limit margin or height).
 - `reachlens render`: MuJoCo offscreen PNG of the arm at the IK solution for a pose, with the tool and an optional hole fixture.
 - `reachlens sweep-gif`: GIF of a peg-in-hole approach (hover, descend, spiral, re-centre, insert), IK solved frame by frame.
