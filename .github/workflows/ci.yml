@@ -1,0 +1,41 @@
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    env:
+      MUJOCO_GL: osmesa
+      REACHLENS_REQUIRE_MODELS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Fetch the UR5e model
+        uses: actions/checkout@v4
+        with:
+          repository: google-deepmind/mujoco_menagerie
+          path: models/mujoco_menagerie
+          sparse-checkout: universal_robots_ur5e
+      - name: Fetch the UR3 model
+        uses: actions/checkout@v4
+        with:
+          repository: darshmenon/UR3_ROS2_PICK_AND_PLACE
+          path: models/UR3_ROS2_PICK_AND_PLACE
+          sparse-checkout: ur_rl_training/models/ur3
+      - name: Install OSMesa for headless rendering
+        run: sudo apt-get update && sudo apt-get install -y libosmesa6 libgl1
+      - name: Install reachlens
+        run: pip install ".[test]"
+      - name: Installed command works
+        run: |
+          export REACHLENS_MODELS="$GITHUB_WORKSPACE/models"
+          reachlens --version
+          reachlens check --arm ur3 --tool-length 0.06 --pose 0.28 0.14 0.12
+          reachlens map --arm ur3 --z 0.15 -n 9 --jobs 2 --out /tmp/reach.png
+      - name: Tests
+        run: |
+          export REACHLENS_MODELS="$GITHUB_WORKSPACE/models"
+          pytest -q
