@@ -25,7 +25,10 @@ class PointResult:
 
 
 def _err(R, Rd, p, pd):
-    e_o = 0.5 * sum(np.cross(R[:, i], Rd[:, i]) for i in range(3))   # small-angle orientation error
+    # small-angle orientation error 0.5 * sum_i (R_i x Rd_i), written with M = R Rd^T instead of three np.cross calls
+    # (np.cross on 3-vectors dominated the runtime of a map)
+    M = R @ Rd.T
+    e_o = 0.5 * np.array([M[1, 2] - M[2, 1], M[2, 0] - M[0, 2], M[0, 1] - M[1, 0]])
     return np.concatenate([pd - p, e_o])
 
 
@@ -53,9 +56,9 @@ def wrap_q(model, q):
 
 
 def jacobian(model, data, site):
-    jp, jr = np.zeros((3, model.nv)), np.zeros((3, model.nv))
-    mujoco.mj_jacSite(model, data, jp, jr, site)
-    return np.vstack([jp, jr])[:, :6]
+    J = np.empty((6, model.nv))
+    mujoco.mj_jacSite(model, data, J[:3], J[3:], site)      # translational rows, then rotational rows
+    return J[:, :6]
 
 
 def manipulability(J):
@@ -85,6 +88,7 @@ def _refine(model, data, site, q, pd, Rd, iters, damping, step, patience=25):
     lo, hi = model.jnt_range[:6, 0], model.jnt_range[:6, 1]
     lim = model.jnt_limited[:6].astype(bool)
     best_e, since = np.inf, 0
+    damp = damping ** 2 * np.eye(6)
     for it in range(1, iters + 1):
         data.qpos[:6] = q
         mujoco.mj_kinematics(model, data)
@@ -101,7 +105,7 @@ def _refine(model, data, site, q, pd, Rd, iters, damping, step, patience=25):
             if since >= patience:      # stalled: stuck at a limit or a singularity, more iterations will not help
                 break
         J = jacobian(model, data, site)
-        dq = J.T @ np.linalg.solve(J @ J.T + damping ** 2 * np.eye(6), e)
+        dq = J.T @ np.linalg.solve(J @ J.T + damp, e)
         n = np.abs(dq).max()
         if n > step:
             dq *= step / n
