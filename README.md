@@ -8,6 +8,18 @@ For a grid of tool-down poses it runs damped-least-squares IK and records, per p
 - **Manipulability**: Yoshikawa `sqrt(det(J J^T))` at the solution, low near singularities.
 - **Joint-limit margin**: 0 when some joint sits on its limit, 1 when every joint is mid-range.
 
+## Quick start
+
+```bash
+pip install git+https://github.com/darshmenon/reachlens        # numpy, mujoco, matplotlib, pillow
+
+export REACHLENS_MODELS=~/models      # a folder holding ur3/ur3.xml or universal_robots_ur5e/ur5e.xml (see "Models")
+reachlens check --arm ur3 --tool-length 0.06 --pose 0.28 0.14 0.12      # REACHABLE, exit 0 (1 if not)
+reachlens map --arm ur3 --z 0.15 --jobs 4 --out reach.png               # heatmap + reach.csv, 4 processes
+```
+
+`reachlens --version` prints the version. Without a model it exits 2 and says how to point it at one.
+
 ![UR3 reach map with the peg-in-hole hole marked](docs/ur3_reach.png)
 
 *UR3, tool tip 0.15 m above the base plane, 60 mm peg. 45x45 poses, under a minute. The star is the peg-in-hole hole.*
@@ -33,10 +45,10 @@ margin or height. Open it in any browser. 1692 of 4375 sampled UR3 poses (7 z sl
 ## Install and use
 
 ```bash
-pip install -e .            # numpy, mujoco, matplotlib, pillow
+pip install .               # or: pip install git+https://github.com/darshmenon/reachlens   (-e for development)
 
 reachlens map --arm ur3 --z 0.25 --out reach.png            # reach.png + reach.csv
-reachlens map --arm ur5e --z 0.3 --half 1.0 -n 61 --out ur5e.png
+reachlens map --arm ur5e --z 0.3 --half 1.0 -n 61 --jobs 4 --out ur5e.png     # --jobs: see "Speed"
 reachlens map --arm ur3 --z 0.15 --tool-length 0.06 --mark 0.28 0.14 hole --out hole.png
 reachlens check --arm ur3 --pose 0.28 0.14 0.15 --tool-length 0.06   # exit 0 reachable, 1 not
 
@@ -45,9 +57,37 @@ reachlens render --arm ur3 --tool-length 0.06 --pose 0.28 0.14 0.15 --hole 0.28 
 reachlens sweep-gif --arm ur3 --out sweep.gif                        # peg-in-hole approach, defaults to the UR3 example hole
 ```
 
-Models are not bundled. `ur5e` is found in `mujoco_menagerie` (`$MUJOCO_MENAGERIE_PATH` or `~/mujoco_menagerie`), `ur3` in
-`UR3_ROS2_PICK_AND_PLACE/ur_rl_training/models/ur3/ur3.xml`. Point elsewhere with `--xml PATH` or `$REACHLENS_UR3_XML` /
-`$REACHLENS_UR5E_XML`. Any 6-joint arm MJCF with a tool site works through `--xml` and `--site`.
+## Models
+
+Models are not bundled. They are looked up in this order:
+
+1. `--xml PATH`
+2. `$REACHLENS_UR3_XML` / `$REACHLENS_UR5E_XML`
+3. every folder in `$REACHLENS_MODELS` (separate several with `:`), trying `ur3.xml`, `ur3/ur3.xml`, `models/ur3/ur3.xml`,
+   `universal_robots_ur5e/ur5e.xml`, `mujoco_menagerie/universal_robots_ur5e/ur5e.xml` and similar under each
+4. the usual places: `~/mujoco_menagerie` (or `$MUJOCO_MENAGERIE_PATH`) for the UR5e, and
+   `~/UR3_ROS2_PICK_AND_PLACE/ur_rl_training/models/ur3/ur3.xml` for the UR3
+
+The UR3 model is in [UR3_ROS2_PICK_AND_PLACE](https://github.com/darshmenon/UR3_ROS2_PICK_AND_PLACE) and the UR5e in
+[mujoco_menagerie](https://github.com/google-deepmind/mujoco_menagerie). Any 6-joint arm MJCF with a tool site works through
+`--xml` and `--site`.
+
+## Speed
+
+A 31x31 map (961 IK problems) on a busy 22-core machine (load average 8 to 11, so treat the times as rough):
+
+| | 0.2.0 | 0.3.0, `--jobs 1` | `--jobs 4` | `--jobs 8` |
+|---|---|---|---|---|
+| UR3, z = 0.15 m, 60 mm peg | 20.0 s | 7.2 s | 2.1 s | 1.4 s |
+| UR5e, z = 0.30 m | 24.8 s | 6.4 to 8.4 s | 2.9 s | 2.1 s |
+
+- The single-process speed-up is one change: the orientation error used three `np.cross` calls per IK iteration, which was about
+  60% of the run time. The 0.3.0 result with `--jobs 1` is bit-identical to 0.2.0 (every column of every row, checked on both arms).
+- `--jobs N` solves rows in separate processes, each row starting fresh. The result does not depend on N (4 and 8 gave the same
+  numbers), and the reachable mask was the same as `--jobs 1`. But the single chain carries one row's solution into the next, so
+  some points land on a different arm configuration: on the UR3 grid above, 21 of 636 reachable points differ in joint-limit margin
+  (by up to 0.17) and 37 in manipulability (by at most 4e-5). That is why `--jobs 1` stays the default.
+- `volume` and the `sweep-gif` solver use the single chain and have no `--jobs` yet.
 
 ```python
 from reachlens import load_arm, solve_pose

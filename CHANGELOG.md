@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+- `pip install .` (or `pip install git+https://github.com/darshmenon/reachlens`) works in a clean virtualenv: `reachlens check`, `map`, `volume` and `render` were run from one with no ROS or other workspace on `PYTHONPATH`.
+- Model lookup: `$REACHLENS_MODELS` takes one or more folders and finds `ur3` and `ur5e` under common layouts. The error for a missing model now lists what was tried and the three ways to fix it.
+- `map` is about 3x faster in one process: the orientation error no longer calls `np.cross`, which was about 60% of the run time. The output is bit-identical to 0.2.0.
+- `map --jobs N` solves rows in parallel (4 jobs: about 9x faster than 0.2.0 on a 31x31 UR3 grid). The result does not depend on N and has the same reachable mask, but a few points can pick a different arm configuration than the single chain, so `--jobs 1` stays the default.
+- `reachlens --version`.
+- GitHub Actions: installs the package on Python 3.10, fetches the UR3 and UR5e models, renders with OSMesa and runs the whole test suite. `REACHLENS_REQUIRE_MODELS=1` makes a missing model fail the build instead of skipping tests.
+
 ## 0.2.0
 - `reachlens volume`: self-contained interactive 3D HTML of the reachable workspace (rotate, zoom, z-range sliders, colour by manipulability, joint-limit margin or height).
 - `reachlens render`: MuJoCo offscreen PNG of the arm at the IK solution for a pose, with the tool and an optional hole fixture.

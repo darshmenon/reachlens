@@ -1,5 +1,5 @@
 """reachlens: reachability and IK-success maps for arms, in MuJoCo (no ROS needed)."""
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 from reachlens.arms import ARMS, load_arm
 from reachlens.ik import PointResult, solve_pose
