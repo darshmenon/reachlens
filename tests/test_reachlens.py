@@ -144,3 +144,49 @@ def test_ur5e_larger_reach_than_ur3():
     assert reach_bound(m5, d5, s5)[1] > reach_bound(m3, d3, s3)[1]
     assert solve_pose(m5, d5, s5, (0.6, 0.2, 0.3), seeds=[q5]).reachable
     assert not solve_pose(m3, d3, s3, (0.6, 0.2, 0.3)).reachable      # beyond the UR3's arm
+
+
+def test_models_env_var_finds_a_model_and_the_error_says_how_to_fix(tmp_path, monkeypatch):
+    from reachlens.arms import resolve_xml
+    for var in ("REACHLENS_UR3_XML", "REACHLENS_UR5E_XML"):
+        monkeypatch.delenv(var, raising=False)
+    models = tmp_path / "models" / "universal_robots_ur5e"
+    models.mkdir(parents=True)
+    (models / "ur5e.xml").write_text("<mujoco/>")
+    monkeypatch.setenv("REACHLENS_MODELS", str(tmp_path / "other") + os.pathsep + str(tmp_path / "models"))
+    assert resolve_xml("ur5e") == str(models / "ur5e.xml")
+    # an explicit --xml still wins
+    assert resolve_xml("ur5e", xml=str(models / "ur5e.xml")) == str(models / "ur5e.xml")
+    monkeypatch.setenv("REACHLENS_MODELS", str(tmp_path / "empty"))
+    monkeypatch.setattr("reachlens.arms.ARMS", {"ur3": ARMS["ur3"].__class__("ur3", "REACHLENS_UR3_XML", (),
+                                                                          rel=("ur3/ur3.xml",))})
+    with pytest.raises(ArmNotFound) as e:
+        resolve_xml("ur3")
+    msg = str(e.value)
+    assert "--xml" in msg and "REACHLENS_UR3_XML" in msg and "REACHLENS_MODELS" in msg and "ur3/ur3.xml" in msg
+
+
+def test_version_flag(capsys):
+    from reachlens import __version__
+    with pytest.raises(SystemExit) as e:
+        main(["--version"])
+    assert e.value.code == 0
+    assert f"reachlens {__version__}" in capsys.readouterr().out
+
+
+def test_parallel_map_matches_the_reachable_mask_and_ignores_worker_count():
+    model, data, site, q0 = load_arm("ur3")
+    kw = dict(half=0.5, n=9, q_home=q0, tool_length=0.06)
+    one = map_slice(model, data, site, 0.15, jobs=1, **kw)
+    two = map_slice(model, data, site, 0.15, jobs=2, **kw)
+    three = map_slice(model, data, site, 0.15, jobs=3, **kw)
+    assert [r["reachable"] for r in one["rows"]] == [r["reachable"] for r in two["rows"]]
+    assert [r["limit_margin"] for r in two["rows"]] == [r["limit_margin"] for r in three["rows"]]
+    assert [r["manipulability"] for r in two["rows"]] == [r["manipulability"] for r in three["rows"]]
+
+
+@pytest.mark.skipif(not os.environ.get("REACHLENS_REQUIRE_MODELS"), reason="only enforced in CI")
+def test_models_are_present_when_required():
+    """In CI a missing model must fail the build instead of silently skipping every test that needs it."""
+    for arm in ("ur3", "ur5e"):
+        resolve_xml(arm)

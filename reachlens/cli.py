@@ -20,6 +20,8 @@ def _add_common(p):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="reachlens", description="Reachability and IK-success maps for arms (MuJoCo).")
+    from reachlens import __version__
+    ap.add_argument("--version", action="version", version=f"reachlens {__version__}")
     sub = ap.add_subparsers(dest="cmd", required=True)
     m = sub.add_parser("map", help="map a horizontal slice of tool-down poses")
     _add_common(m)
@@ -28,6 +30,9 @@ def main(argv=None):
     m.add_argument("-n", type=int, default=41, help="grid points per side")
     m.add_argument("--out", default="reach.png", help="heatmap PNG; a CSV with the same name is written next to it")
     m.add_argument("--no-csv", action="store_true")
+    m.add_argument("-j", "--jobs", type=int, default=1,
+                   help="worker processes (rows solved independently; default 1 = one chain over the whole grid, "
+                        "identical to 0.2.0). Same reachable mask, a few points may pick another arm configuration")
     m.add_argument("--mark", nargs=3, action="append", metavar=("X", "Y", "LABEL"), default=[],
                    help="mark a point on the map (repeatable), e.g. --mark 0.28 0.14 hole")
     c = sub.add_parser("check", help="IK for one tool-down pose; exit 1 if unreachable")
@@ -110,7 +115,8 @@ def main(argv=None):
     from reachlens.plot import plot_slice
     z = a.z if a.z is not None else (spec.default_z if spec else 0.3)
     half = a.half if a.half is not None else (spec.default_range if spec else 0.8)
-    res = map_slice(model, data, site, z, half=half, n=a.n, q_home=q0, yaw=a.yaw, tool_length=a.tool_length)
+    res = map_slice(model, data, site, z, half=half, n=a.n, q_home=q0, yaw=a.yaw, tool_length=a.tool_length,
+                    jobs=a.jobs)
     s = summary(res)
     plot_slice(res, a.arm, a.out, s, marks=[(float(x), float(y), l) for x, y, l in a.mark])
     print(f"{a.arm}: {s['reachable']}/{s['points']} poses reachable ({s['success_rate']:.1%}) at z={z:.2f} m, "
