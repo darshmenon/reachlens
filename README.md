@@ -38,7 +38,7 @@ reachlens map --arm ur3 --z 0.15 --jobs 4 --out reach.png               # heatma
 
 *`reachlens sweep-gif`: home, hover, descend, 1.5-turn 6 mm spiral, re-centre, insert 27 mm. Each leg is solved by IK frame by frame, so the tip path is straight. The camera eases in on the hole. The spiral is only 6 mm wide, so it is subtle at this zoom.*
 
-[`docs/reach3d_ur3.html`](docs/reach3d_ur3.html) is the interactive workspace volume (`reachlens volume`): a self-contained page, no
+[`docs/reach3d_ur3.html`](docs/reach3d_ur3.html) ([open it live](https://darshmenon.github.io/reachlens/reach3d_ur3.html)) is the interactive workspace volume (`reachlens volume`): a self-contained page, no
 network or libraries. Drag to rotate, scroll to zoom, sliders pick the z range, and points are coloured by manipulability, joint-limit
 margin or height. Open it in any browser. 1692 of 4375 sampled UR3 poses (7 z slices, 25x25 each, 60 mm peg) were reachable.
 
