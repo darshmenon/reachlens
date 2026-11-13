@@ -76,6 +76,8 @@ The UR3 model is in [UR3_ROS2_PICK_AND_PLACE](https://github.com/darshmenon/UR3_
 
 ## Speed
 
+Optional C++ core: `pip install pybind11 mujoco` then `pip install --no-build-isolation .` (isolation hides the installed MuJoCo from the build, so the plain command skips it) and the DLS refine loop is built against the MuJoCo C API (`reachlens._fast`). A 41x41 UR3 map takes 1.5 s instead of 18.4 s (12.6x on one core, same reachable mask; the rest of the time is Python bookkeeping, so this is far below the raw 358x per-IK-call gap measured in ctrlbench). `REACHLENS_NO_CPP=1` forces the Python solver; `reachlens.ik.have_cpp()` tells you which one you got.
+
 A 31x31 map (961 IK problems) on a busy 22-core machine (load average 8 to 11, so treat the times as rough):
 
 | | 0.2.0 | 0.3.0, `--jobs 1` | `--jobs 4` | `--jobs 8` |

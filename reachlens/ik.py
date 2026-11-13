@@ -1,8 +1,21 @@
 """Damped-least-squares IK for a tool-down pose, with manipulability and joint-limit margin."""
 from dataclasses import dataclass
 
+import os
+
 import mujoco
 import numpy as np
+
+try:                                   # optional C++ core, built by setup.py when pybind11 and a compiler are present
+    if os.environ.get("REACHLENS_NO_CPP"):
+        raise ImportError
+    from reachlens import _fast
+except ImportError:
+    _fast = None
+
+
+def have_cpp():
+    return _fast is not None
 
 
 def tool_down(yaw=0.0):
@@ -85,6 +98,13 @@ def reach_bound(model, data, site):
 
 
 def _refine(model, data, site, q, pd, Rd, iters, damping, step, patience=25):
+    if _fast is not None:
+        q, it, e = _fast.refine(model._address, data._address, site, q, pd, np.ascontiguousarray(Rd), iters, damping, step, patience)
+        return q, it, e
+    return _refine_py(model, data, site, q, pd, Rd, iters, damping, step, patience)
+
+
+def _refine_py(model, data, site, q, pd, Rd, iters, damping, step, patience=25):
     lo, hi = model.jnt_range[:6, 0], model.jnt_range[:6, 1]
     lim = model.jnt_limited[:6].astype(bool)
     best_e, since = np.inf, 0

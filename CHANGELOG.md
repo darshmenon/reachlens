@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+- Optional C++ core (`reachlens._fast`, built by `pip install --no-build-isolation .` when pybind11, a compiler and the MuJoCo headers are present). It runs the damped-least-squares refine loop through the MuJoCo C API on the same model and data. A 41x41 UR3 map went from 18.4 s to 1.5 s (12.6x, one process, same reachable mask). Without it, or with `REACHLENS_NO_CPP=1`, the pure Python solver runs as before.
+- `tests/test_fast.py` compares the C++ and Python refine loops call by call (iterations equal, joint angles and error within 1e-6) and checks that a map is identical either way.
+
 ## 0.3.0
 - `pip install .` (or `pip install git+https://github.com/darshmenon/reachlens`) works in a clean virtualenv: `reachlens check`, `map`, `volume` and `render` were run from one with no ROS or other workspace on `PYTHONPATH`.
 - Model lookup: `$REACHLENS_MODELS` takes one or more folders and finds `ur3` and `ur5e` under common layouts. The error for a missing model now lists what was tried and the three ways to fix it.
