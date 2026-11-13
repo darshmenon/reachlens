@@ -1,5 +1,7 @@
 # reachlens
 
+[![CI](https://github.com/darshmenon/reachlens/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/darshmenon/reachlens/actions/workflows/ci.yml) [![Release](https://img.shields.io/github/v/release/darshmenon/reachlens)](https://github.com/darshmenon/reachlens/releases) [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE) ![python](https://img.shields.io/badge/python-3.9%2B-blue) ![MuJoCo](https://img.shields.io/badge/MuJoCo-orange)
+
 **Can my arm get there, and how comfortably?** Reachability and IK-success maps for robot arms, in MuJoCo. No ROS, no simulator window: it only needs the arm's MJCF.
 
 For a grid of tool-down poses it runs damped-least-squares IK and records, per point:
