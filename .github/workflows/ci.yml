@@ -31,7 +31,7 @@ jobs:
         run: |
           pip install pybind11 mujoco numpy matplotlib pillow pytest
           pip install --no-build-isolation .
-          python -c "from reachlens import ik; assert ik.have_cpp(), 'C++ core was not built'"
+          cd /tmp && python -c "from reachlens import ik; print(ik.__file__); assert ik.have_cpp(), 'C++ core was not built'"
       - name: Installed command works
         run: |
           export REACHLENS_MODELS="$GITHUB_WORKSPACE/models"
