@@ -79,6 +79,7 @@ def main(argv=None):
         return 0 if r.reachable else 1
 
     spec = ARMS.get(a.arm)
+    name = os.path.splitext(os.path.basename(a.xml))[0] if a.xml else a.arm      # label by the model actually loaded
     if a.cmd == "volume":
         from reachlens.volume import sample_volume, write_html
         z0 = a.zmin if a.zmin is not None else (spec.default_z - 0.2 if spec else 0.1)
@@ -86,8 +87,8 @@ def main(argv=None):
         half = a.half if a.half is not None else (spec.default_range if spec else 0.8)
         cols = sample_volume(model, data, site, q0, np.linspace(z0, z1, a.slices), half, a.n,
                              tool_length=a.tool_length, yaw=a.yaw)
-        info = write_html(cols, a.arm, a.out, a.n)
-        print(f"{a.arm}: {info['reachable']}/{info['points']} poses reachable over z={z0:.2f}..{z1:.2f} m")
+        info = write_html(cols, name, a.out, a.n)
+        print(f"{name}: {info['reachable']}/{info['points']} poses reachable over z={z0:.2f}..{z1:.2f} m")
         print(f"wrote {a.out} ({info['bytes'] / 1e3:.0f} kB, self-contained)")
         return 0
     if a.cmd == "render":
@@ -118,8 +119,8 @@ def main(argv=None):
     res = map_slice(model, data, site, z, half=half, n=a.n, q_home=q0, yaw=a.yaw, tool_length=a.tool_length,
                     jobs=a.jobs)
     s = summary(res)
-    plot_slice(res, a.arm, a.out, s, marks=[(float(x), float(y), l) for x, y, l in a.mark])
-    print(f"{a.arm}: {s['reachable']}/{s['points']} poses reachable ({s['success_rate']:.1%}) at z={z:.2f} m, "
+    plot_slice(res, name, a.out, s, marks=[(float(x), float(y), l) for x, y, l in a.mark])
+    print(f"{name}: {s['reachable']}/{s['points']} poses reachable ({s['success_rate']:.1%}) at z={z:.2f} m, "
           f"mean manipulability {s['mean_manipulability']:.4f}, min limit margin {s['min_limit_margin']:.2f}")
     print(f"wrote {a.out}")
     if not a.no_csv:

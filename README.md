@@ -61,6 +61,8 @@ reachlens sweep-gif --arm ur3 --out sweep.gif                        # peg-in-ho
 
 ## Models
 
+Beyond the UR3 and UR5e, any 6-joint arm with a tool site works through `--xml`. Checked on UFactory Lite6 from mujoco_menagerie: `reachlens map --arm ur3 --xml ~/mujoco_menagerie/ufactory_lite6/lite6.xml --z 0.25 --half 0.5` reaches 0.44 m tool-down, matching its 440 mm spec (`--arm` only picks the default window; the plot is labelled with the model file's name). 7-joint arms (Franka, xArm7) are not supported: the solver uses the first six joints.
+
 Models are not bundled. They are looked up in this order:
 
 1. `--xml PATH`

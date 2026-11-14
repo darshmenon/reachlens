@@ -18,7 +18,9 @@ jobs:
         with:
           repository: google-deepmind/mujoco_menagerie
           path: models/mujoco_menagerie
-          sparse-checkout: universal_robots_ur5e
+          sparse-checkout: |
+            universal_robots_ur5e
+            ufactory_lite6
       - name: Fetch the UR3 model
         uses: actions/checkout@v4
         with:

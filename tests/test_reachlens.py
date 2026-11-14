@@ -190,3 +190,33 @@ def test_models_are_present_when_required():
     """In CI a missing model must fail the build instead of silently skipping every test that needs it."""
     for arm in ("ur3", "ur5e"):
         resolve_xml(arm)
+
+
+def _lite6_xml():
+    roots = [os.path.join(d, "mujoco_menagerie") for d in os.environ.get("REACHLENS_MODELS", "").split(os.pathsep) if d]
+    roots += [os.path.join(os.environ.get("MUJOCO_MENAGERIE_PATH", ""), ""), os.path.expanduser("~/mujoco_menagerie")]
+    for r in roots:
+        p = os.path.join(r, "ufactory_lite6", "lite6.xml")
+        if os.path.isfile(p):
+            return p
+    return None
+
+
+@pytest.mark.skipif(_lite6_xml() is None, reason="UFactory Lite6 MJCF (mujoco_menagerie) not found")
+def test_non_ur_arm_ufactory_lite6_matches_its_published_reach():
+    """A 6-joint arm that is not a UR: the largest reachable tool-down radius must match UFactory's 440 mm spec."""
+    m, d, s, q0 = load_arm("lite6", xml=_lite6_xml())
+    res = map_slice(m, d, s, 0.25, half=0.5, n=25, q_home=q0)
+    g = res["grids"]["reachable"] > 0
+    X, Y = np.meshgrid(res["xs"], res["ys"])
+    radius = np.hypot(X, Y)[g]
+    assert g.any() and 0.40 <= radius.max() <= 0.46, radius.max()
+
+
+@pytest.mark.skipif(_lite6_xml() is None, reason="UFactory Lite6 MJCF (mujoco_menagerie) not found")
+def test_cli_labels_the_plot_with_the_model_that_was_loaded(tmp_path, capsys):
+    rc = main(["map", "--arm", "ur3", "--xml", _lite6_xml(), "--z", "0.25", "--half", "0.5", "-n", "7",
+               "--out", str(tmp_path / "m.png"), "--no-csv"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert out.startswith("lite6:") and "ur3:" not in out
